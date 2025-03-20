@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Pulga</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            background: linear-gradient(to bottom, #87CEEB, #f0e68c); 
+            text-align: center; 
+            font-family: Arial, sans-serif; 
+        }
+        canvas { 
+            background: url('https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbTlpOWY2cG9yeDBnM2x5dWFlNmpkbGZndGFjZzNrMnhnYWZnajBwNiZlcD12MV9pbnRlcm5naXJfYnlfaWQmY3Q9Zw/3oKIPu8kvxfwzo5UM8/giphy.gif') repeat-x;
+            display: block; 
+            margin: 20px auto; 
+            border-radius: 15px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .message {
+    display: none;
+    padding: 25px;
+    background: linear-gradient(to bottom, rgba(255, 240, 245, 0.9), rgba(255, 228, 225, 0.9)); 
+    border-radius: 15px;
+    width: 70%;
+    margin: auto;
+    text-align: center;
+    border: 3px solid #ff69b4;
+    box-shadow: 0px 0px 15px rgba(255, 105, 180, 0.6);
+    animation: fadeIn 1.5s ease-in-out;
+}
+
+.message h2 {
+    color: #ff1493;
+    font-family: 'Brush Script MT', cursive;
+    font-size: 28px;
+    text-shadow: 2px 2px 4px rgba(255, 20, 147, 0.5);
+}
+
+.message p {
+    font-size: 20px;
+    color: #444;
+    font-family: 'Georgia', serif;
+    line-height: 1.6;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+    </style>
+</head>
+<body>
+    <audio id="bgMusic" loop>
+        <source src="count.mp3" type="audio/mpeg">
+        Tu navegador no soporta audio HTML5.
+    </audio>
+
+    <h1>Flappy Pulga 💖</h1>
+    <canvas id="gameCanvas" width="400" height="500"></canvas>
+    <div class="message" id="dedicatoria">
+        <h2>💖 Para mi pulga 💖</h2>
+        <p>Esto va para mi pulga, perdón por los malos entendidos que hemos tenido, pero quiero que sepas que con los días que pasan siempre te amaré y aún mucho más. Tú eres perfecta tal como eres, me alegras los días, ojalá nunca te vayas a aburrir de mí porque me encariñé mucho contigo. ❤️ Gracias por estar en mi vida, siempre serás alguien muy especial para mí. 🌸✨</p>
+    </div>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let bird = { x: 50, y: 150, radius: 15, velocity: 0, gravity: 0.4 };
+        let pipes = [];
+        let score = 0;
+        let gameOver = false;
+        const pipeWidth = 70;
+        const minGap = 130;
+        const maxGap = 160;
+        const pipeSpeed = 2;
+        const pipeSpacing = 250;
+
+        // Variables para mover el fondo
+        let bgX = 0;
+        let bgSpeed = 1; 
+
+        function drawBackground() {
+            let img = new Image();
+            img.src = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExbTlpOWY2cG9yeDBnM2x5dWFlNmpkbGZndGFjZzNrMnhnYWZnajBwNiZlcD12MV9pbnRlcm5naXJfYnlfaWQmY3Q9Zw/3oKIPu8kvxfwzo5UM8/giphy.gif";
+            ctx.drawImage(img, bgX, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, bgX + canvas.width, 0, canvas.width, canvas.height);
+        }
+
+        function drawBird() {
+            ctx.fillStyle = "yellow";
+            ctx.beginPath();
+            ctx.arc(bird.x, bird.y, bird.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawPipes() {
+            ctx.fillStyle = "green";
+            pipes.forEach(pipe => {
+                ctx.fillRect(pipe.x, 0, pipeWidth, pipe.top);
+                ctx.fillRect(pipe.x, pipe.bottom, pipeWidth, canvas.height - pipe.bottom);
+            });
+        }
+
+        function updateGame() {
+            if (gameOver) return;
+
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+
+            if (bird.y > canvas.height || bird.y < 0) {
+                endGame();
+            }
+
+            pipes.forEach(pipe => {
+                pipe.x -= pipeSpeed;
+
+                if (pipe.x + pipeWidth < 0) {
+                    pipes.shift();
+                    generatePipe(pipes[pipes.length - 1].x + pipeSpacing);
+                    score++;
+                }
+
+                if (
+                    bird.x + bird.radius > pipe.x &&
+                    bird.x - bird.radius < pipe.x + pipeWidth &&
+                    (bird.y - bird.radius < pipe.top || bird.y + bird.radius > pipe.bottom)
+                ) {
+                    endGame();
+                }
+            });
+
+            if (score >= 10) {
+                endGame(true);
+            }
+
+            // Mover el fondo
+            bgX -= bgSpeed;
+            if (bgX <= -canvas.width) {
+                bgX = 0;
+            }
+        }
+
+        function endGame(win = false) {
+            gameOver = true;
+            if (win) {
+                document.getElementById("dedicatoria").style.display = "block";
+            } else {
+                alert("¡Perdiste! Intenta de nuevo.");
+                location.reload();
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();  // Se dibuja el fondo en cada frame
+            drawBird();
+            drawPipes();
+            updateGame();
+            if (!gameOver) requestAnimationFrame(gameLoop);
+        }
+
+        document.addEventListener("keydown", () => {
+            bird.velocity = -6;
+        });
+
+        function generatePipe(startX = canvas.width) {
+            let topHeight = Math.floor(Math.random() * (canvas.height / 3)) + 50;
+            let gap = Math.floor(Math.random() * (maxGap - minGap)) + minGap;
+            let bottomHeight = topHeight + gap;
+
+            pipes.push({ x: startX, top: topHeight, bottom: bottomHeight });
+        }
+
+        for (let i = 0; i < 3; i++) {
+            generatePipe(canvas.width + i * pipeSpacing);
+        }
+
+        gameLoop();
+        document.addEventListener("keydown", () => {
+        let audio = document.getElementById("bgMusic");
+        if (audio.paused) {
+            audio.play().catch(error => console.log("No se pudo reproducir: ", error));
+        }
+        bird.velocity = -6; // Mantiene la funcionalidad del salto
+    });
+    </script>    
+</body>
+</html>
+
